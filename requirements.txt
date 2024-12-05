@@ -1,0 +1,6 @@
+Flask==2.2.3
+whisper==1.0.0
+spacy==3.6.1
+pandas==1.5.3
+pyngrok==5.1.0
+requests==2.31.0
