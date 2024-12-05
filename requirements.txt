@@ -4,3 +4,6 @@ spacy==3.6.1
 pandas==1.5.3
 pyngrok==5.1.0
 requests==2.31.0
+numpy==1.23.5
+thinc==8.1.0
+spacy==3.3.1
