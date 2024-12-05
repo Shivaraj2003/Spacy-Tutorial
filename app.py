@@ -169,6 +169,8 @@ def process_audio():
     audio_file = request.files['file']
     audio_path = f"/content/{audio_file.filename}"
     audio_file.save(audio_path)
+
+
     
     # Transcribe and extract
     transcript = transcribe_audio(audio_path)
@@ -177,5 +179,5 @@ def process_audio():
     return jsonify(entities)
 
 # Run the app
-if __name__ == "__main__":
-    app.run(port=5000)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
