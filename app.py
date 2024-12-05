@@ -167,13 +167,13 @@ def process_audio():
     if 'file' not in request.files:
         return jsonify({"error": "No file uploaded"}), 400
     audio_file = request.files['file']
-    audio_path = f"/content/{audio_file.filename}"
-    audio_file.save(audio_path)
+    #audio_path = f"/content/{audio_file.filename}"
+    #audio_file.save(audio_path)
 
 
     
     # Transcribe and extract
-    transcript = transcribe_audio(audio_path)
+    transcript = transcribe_audio(audio_file.filename)
     entities = extract_entities(transcript)
     print(entities)
     return jsonify(entities)
