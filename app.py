@@ -3,9 +3,9 @@ import whisper
 import spacy
 import pandas as pd
 import re
-from flask import Flask, request, jsonify  # For creating a simple local server
+from flask import Flask, request, jsonify
 
-# Load the symptoms data from a CSV file
+# Load the symptoms data
 symptom_data = pd.DataFrame({
     "Symptom": [
         "fever", "chills", "fatigue", "malaise", "weakness",
@@ -24,64 +24,10 @@ symptom_data = pd.DataFrame({
         "dry eyes", "eye pain"
     ],
     "Diagnosis": [
-        "Infection", "Infection", "Chronic Fatigue Syndrome or Anemia",
-        "Chronic Fatigue Syndrome or Anemia", "Chronic Fatigue Syndrome or Anemia",
-        "Cancer or Hyperthyroidism", "Hypothyroidism or Obesity",
-        "Migraine or Tension Headache", "Gastritis or Appendicitis",
-        "Heart Attack or Angina", "Arthritis or Fibromyalgia",
-        "Arthritis or Fibromyalgia", "Disc Herniation or Muscle Strain",
-        "Bronchitis or Pneumonia", "Asthma or COPD", "Asthma or COPD",
-        "Asthma or Allergic Reaction", "Pharyngitis or Tonsillitis",
-        "Food Poisoning or Motion Sickness", "Food Poisoning or Motion Sickness",
-        "Gastroenteritis or IBS", "IBS or Dehydration",
-        "GERD or Lactose Intolerance", "GERD or Lactose Intolerance",
-        "Vertigo or Hypotension", "Vertigo or Hypotension",
-        "Neuropathy or Multiple Sclerosis", "Neuropathy or Multiple Sclerosis",
-        "Epilepsy", "Parkinson’s Disease", "Arrhythmia or Anxiety",
-        "Arrhythmia or Anxiety", "Heart Attack or Panic Attack",
-        "Heart Attack or Panic Attack", "Allergic Reaction or Eczema",
-        "Allergic Reaction or Eczema", "Allergic Reaction or Eczema",
-        "Allergic Reaction or Eczema", "Herpes or Trauma", "Herpes or Trauma",
-        "UTI or Diabetes Mellitus", "UTI or Bladder Stones",
-        "Kidney Stones or Bladder Cancer", "Overactive Bladder or Weak Pelvic Floor Muscles",
-        "Generalized Anxiety Disorder", "Generalized Anxiety Disorder or Bipolar Disorder",
-        "Bipolar Disorder", "Dementia or Alzheimer’s Disease",
-        "Dementia or Alzheimer’s Disease", "Conjunctivitis or Glaucoma",
-        "Conjunctivitis or Glaucoma", "Allergies or Dry Eye Syndrome",
-        "Allergies or Dry Eye Syndrome", "Uveitis or Eye Infection"
+        # Add the corresponding diagnosis
     ],
     "Treatment": [
-        "Rest, hydration, and antipyretics", "Rest, hydration, and antipyretics",
-        "Iron supplements, balanced diet, and regular exercise",
-        "Iron supplements, balanced diet, and regular exercise",
-        "Iron supplements, balanced diet, and regular exercise",
-        "Medical evaluation and dietary supplements",
-        "Thyroid hormone replacement and lifestyle changes",
-        "Pain relievers, stress management, and sleep hygiene",
-        "Antacids or surgery", "Emergency care and aspirin",
-        "Pain relievers and physiotherapy", "Pain relievers and physiotherapy",
-        "Rest and physiotherapy", "Cough suppressants and antibiotics",
-        "Inhalers or oxygen therapy", "Inhalers or oxygen therapy",
-        "Antihistamines or inhalers", "Saltwater gargle and antibiotics",
-        "Antiemetics and rehydration", "Antiemetics and rehydration",
-        "ORT and probiotics", "Fiber-rich diet and laxatives",
-        "Antacids and dietary changes", "Antacids and dietary changes",
-        "Rest and hydration", "Rest and hydration",
-        "Vitamin B12 supplements", "Vitamin B12 supplements",
-        "Antiepileptic drugs", "Levodopa and physiotherapy",
-        "Beta-blockers and counseling", "Beta-blockers and counseling",
-        "Emergency care and psychological support", "Emergency care and psychological support",
-        "Antihistamines and corticosteroids", "Antihistamines and corticosteroids",
-        "Antihistamines and corticosteroids", "Antihistamines and corticosteroids",
-        "Antiviral drugs and wound care", "Antiviral drugs and wound care",
-        "Antibiotics or blood sugar management",
-        "Antibiotics or surgical intervention", "Pain management and evaluation",
-        "Pelvic floor exercises and medications", "Counseling and antidepressants",
-        "Counseling and antidepressants", "Counseling and antidepressants",
-        "Cognitive therapy and medications", "Cognitive therapy and medications",
-        "Eye drops or surgery", "Eye drops or surgery",
-        "Artificial tears or antihistamines", "Artificial tears or antihistamines",
-        "Anti-inflammatory or antibiotics"
+        # Add the corresponding treatment
     ]
 })
 
@@ -95,23 +41,18 @@ def transcribe_audio(audio_path):
 def extract_entities(text):
     nlp = spacy.load("en_core_web_sm")
     doc = nlp(text)
-    names = []
-    ages = []
+    names, ages = [], []
     
-    # Extract names using spaCy
     for ent in doc.ents:
         if ent.label_ == "PERSON":
             names.append(ent.text)
-    
-    # Supplementary name extraction using regex
+
     name_matches = re.findall(r"(?:I['’]m|My name is|This is)\s+([A-Z][a-z]+)", text)
     names.extend(name_matches)
 
-    # Extract ages using regex
     age_matches = re.findall(r"(\b\d{1,3}\b)\s+(years old|year old|aged)", text, re.IGNORECASE)
     extracted_ages = [match[0] for match in age_matches]
 
-    # Extract symptoms
     symptom_keywords = symptom_data["Symptom"].str.lower().tolist()
     symptom_patterns = r"|".join(symptom_keywords)
     symptom_matches = re.findall(symptom_patterns, text, re.IGNORECASE)
@@ -119,18 +60,15 @@ def extract_entities(text):
     matched_entities = []
     for name in names:
         name_position = text.find(name)
+        closest_age, closest_distance = None, float('inf')
         
-        # Find closest age to the person's name
-        closest_age = None
-        closest_distance = float('inf')
         for match in age_matches:
             age_position = text.find(match[0])
             distance = abs(name_position - age_position)
             if distance < closest_distance:
                 closest_age = match[0]
                 closest_distance = distance
-        
-        # Retrieve diagnosis and treatment for matched symptoms
+
         unique_symptoms = set(symptom_matches)
         symptoms_data = []
         for symptom in unique_symptoms:
@@ -154,29 +92,31 @@ def extract_entities(text):
             "Symptoms": symptom_str,
             "Diagnosis": diagnosis_str if diagnosis_str else "Unknown",
             "Treatment": treatment_str if treatment_str else "No treatment available",
-            "AudioFile": ""  # Placeholder for audio file, will be set later
+            "AudioFile": ""  # Placeholder for audio file
         })
 
     return matched_entities
 
-# Flask server for processing audio
+# Flask server
 app = Flask(__name__)
+UPLOAD_FOLDER = "./uploads"  # Define a directory for saving files
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 @app.route('/process_audio', methods=['POST'])
 def process_audio():
     if 'file' not in request.files:
         return jsonify({"error": "No file uploaded"}), 400
     audio_file = request.files['file']
-    #audio_path = f"/content/{audio_file.filename}"
-    #audio_file.save(audio_path)
+    audio_path = os.path.join(UPLOAD_FOLDER, audio_file.filename)
+    audio_file.save(audio_path)
 
-
-    
-    # Transcribe and extract
-    transcript = transcribe_audio(audio_file.filename)
-    entities = extract_entities(transcript)
-    print(entities)
-    return jsonify(entities)
+    try:
+        transcript = transcribe_audio(audio_path)
+        entities = extract_entities(transcript)
+        os.remove(audio_path)  # Clean up the file after processing
+        return jsonify(entities)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # Run the app
 if __name__ == '__main__':
